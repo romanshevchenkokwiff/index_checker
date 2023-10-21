@@ -13,7 +13,7 @@ const otherOther = async () => {
 };
 
 const testQuery = async (args: TestArgs) => {
-	conts test = knex("rules").select('*').where(args);
+	const test = knex("rules").select('*').where(args);
 
 	return test;
 };
