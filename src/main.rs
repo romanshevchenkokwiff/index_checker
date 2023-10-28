@@ -1,12 +1,16 @@
 use std::{env, process, result, error, collections};
-use glob::glob;
 use mysql::*;
+use serde_json::*;
 use mysql::prelude::*;
 
-mod parser;
-
-const PATTERN: &str = "/*.ts";
-const CONNECTION_STRING: &str = "mysql://root:root@localhost:3306/";
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct DbConnection {
+    user: String,
+    host: String,
+    port: u16,
+    database: String,
+    password: String
+}
 
 struct CreateTableResult <'a>{
     pub table: String,
@@ -49,10 +53,10 @@ impl<'a> CreateTableResult<'a> {
     }
 
     pub fn get_ddl () -> result::Result<(), Box<dyn error::Error>> {
-        let pool = Pool::new(CONNECTION_STRING)?;
-        let mut conn = pool.get_conn()?;
+        let new_conn = DbConnection::new();
 
-        // Fetch result as a tuple
+        let mut conn = new_conn.new_connection()?;
+
         let val: Option<(String, String)> = conn.query_first("SHOW CREATE TABLE test.rules")?;
 
         match val {
@@ -63,53 +67,41 @@ impl<'a> CreateTableResult<'a> {
             },
             None => process::exit(1),
         };
-
         Ok(())
     }
 }
 
-mod scan_dir {
-
-    pub fn get_files(file_path: String) -> Vec<String> {
-        let full_path: String = file_path + super::PATTERN;
-        let mut entry_list: Vec<String> = vec!();
-        println!("full_path {}", full_path);
-
-        for entry in super::glob(&full_path[..]).unwrap() {
-            let test_path: String = match entry {
-                Ok(path) => path.display().to_string(),
-                Err(e) => {
-                    println!("{:?}", e);
-                    super::process::exit(1);
-                }
-            };
-            entry_list.push(test_path);
-        };
-        return entry_list;
+impl DbConnection {
+    pub fn new () -> Self {
+       let connection_object: DbConnection = match env::var("DB_CONFIG") {
+           Ok(obj) => from_str(&obj[..]).unwrap(),
+           Err(e) => {
+               println!("DB_CONFIG was not found, {e}");
+               process::exit(1);
+           }
+       };
+       return connection_object;
     }
 
-    pub fn read_file (file_to_read: &String) {
-        //TODO https://github.com/Boshen/javascript-parser-in-rust
+    pub fn new_connection(self) -> result::Result<Conn, mysql::Error> {
+        let connection_options = Self::get_connection_options(self);
+
+        return Conn::new(connection_options);
     }
 
-    //fn check_index () {};
+    fn get_connection_options(self) -> OptsBuilder {
+        let connection_config = OptsBuilder::new()
+            .user(Some(self.user))
+            .db_name(Some(self.database))
+            .ip_or_hostname(Some(self.host))
+            .tcp_port(self.port)
+            .pass(Some(self.password));
 
+        return connection_config;
+    }
 }
 
 fn main() {
-    let raw_args: Vec<String> = env::args().collect();
-    let args: Option<&String> = raw_args.get(1);
-    println!("test args {:?}", args);
-    let file_path: String = match args {
-        Some(arg) => arg.clone(),
-        None => {
-            println!("No arguments was passed");
-            process::exit(1);
-        },
-    };
-    let file_list = scan_dir::get_files(file_path);
-    println!("etries: {:?}", file_list);
-    //scan_dir::get_ddl().unwrap();
-    //println!("{:#?}");
+    println!("test");
 }
 
