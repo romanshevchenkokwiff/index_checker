@@ -1,19 +1,21 @@
-use std::{env, fs, process, result, error, collections};
+use std::{env, process, result, error, collections};
 use glob::glob;
 use mysql::*;
 use mysql::prelude::*;
 
+mod parser;
+
 const PATTERN: &str = "/*.ts";
 const CONNECTION_STRING: &str = "mysql://root:root@localhost:3306/";
 
-struct CreateTableResult {
+struct CreateTableResult <'a>{
     pub table: String,
     pub create_table: String,
-    index_keys: collections::HashMap<String, Vec<Option<Vec<String>>>>,
+    index_keys: collections::HashMap<&'a str, Vec<Option<Vec<&'a str>>>>,
 }
 
 
-impl CreateTableResult {
+impl<'a> CreateTableResult<'a> {
     pub fn new (table: String, create_table: String) -> Self {
         return Self {
             table,
@@ -22,8 +24,8 @@ impl CreateTableResult {
         }
     }
 
-    pub fn get_ddl_keys (&mut self) -> () {
-        let ddl_sliced: Vec<Option<Vec<String>>> = self.create_table
+    pub fn get_ddl_keys (&'a mut self) -> () {
+        let ddl_sliced: Vec<Option<Vec<&'a str>>> = self.create_table
             .split_inclusive('\n')
             .rev()
             .filter(|ddl_elemetn| {
@@ -34,8 +36,8 @@ impl CreateTableResult {
             let trimmed_element = ddl_element.trim();
             if let (Some(start), Some(end)) = (trimmed_element.find('('), trimmed_element.rfind(')')) {
                 let inside_parentheses: &str = &trimmed_element[start+1..end];
-                let items: Vec<String> = inside_parentheses.split(',')
-                    .map(|s| s.trim_matches(|c| c == ' ' || c == '`').to_string())
+                let items: Vec<&'a str> = inside_parentheses.split(',')
+                    .map(|s| s.trim_matches(|c| c == ' ' || c == '`'))
                     .collect();
                 Some(items)
             } else {
@@ -43,7 +45,7 @@ impl CreateTableResult {
             }
         })
         .collect();
-        self.index_keys.insert(self.table.clone(), ddl_sliced);
+        self.index_keys.insert(&self.table, ddl_sliced);
     }
 
     pub fn get_ddl () -> result::Result<(), Box<dyn error::Error>> {
