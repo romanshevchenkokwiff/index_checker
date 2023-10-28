@@ -54,18 +54,15 @@ impl<'a> CreateTableResult<'a> {
 
     pub fn get_ddl () -> result::Result<(), Box<dyn error::Error>> {
         let new_conn = DbConnection::new();
-
         let mut conn = new_conn.new_connection()?;
-
         let val: Option<(String, String)> = conn.query_first("SHOW CREATE TABLE test.rules")?;
 
         match val {
-            Some((table, create_table)) => {
-                let result = Self::new(table, create_table);
-                println!("Table: {}", result.table);
-                println!("DDL: {}", result.create_table);
+            Some((table, create_table)) => Self::new(table, create_table),
+            None => {
+                println!("Wasn't able to get DDL");
+                process::exit(1);
             },
-            None => process::exit(1),
         };
         Ok(())
     }
