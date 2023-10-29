@@ -1,4 +1,5 @@
 use neon::prelude::*;
+use database_module::*;
 
 fn hello(mut cx: FunctionContext) -> JsResult<JsString> {
     Ok(cx.string("hello node"))
