@@ -1,6 +1,4 @@
-
 pub mod database_module {
-
     use std::{env, process, result, error, collections};
     use mysql::*;
     use serde_json::*;
@@ -16,13 +14,13 @@ pub mod database_module {
         password: String,
     }
 
-    pub struct CrateTableResult <'a>{
+    pub struct CreateTableResult <'a>{
         pub table: String,
         pub index_keys: collections::HashMap<&'a str, Vec<Option<Vec<&'a str>>>>,
         create_table: String,
     }
 
-    impl<'a> CrateTableResult <'a> {
+    impl<'a> CreateTableResult <'a> {
         pub fn new (table: String, create_table: String) -> Self {
             return Self {
                 table,
