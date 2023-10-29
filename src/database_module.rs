@@ -1,10 +1,12 @@
-use std::{env, process, result, error, collection};
-use mysql::*;
-use serde_json::*;
-use serde::{Serialize, Deserialize};
-use mysql::prelude::*;
 
 pub mod database_module {
+
+    use std::{env, process, result, error, collections};
+    use mysql::*;
+    use serde_json::*;
+    use serde::{Serialize, Deserialize};
+    use mysql::prelude::*;
+
     #[derive(Serialize, Deserialize)]
     pub struct DbConnection {
         user: String,
@@ -16,11 +18,11 @@ pub mod database_module {
 
     pub struct CrateTableResult <'a>{
         pub table: String,
-        pub index_keys: collections::HashMap<&'a str, Vec<Options<Vec<&'a str>>>>,
+        pub index_keys: collections::HashMap<&'a str, Vec<Option<Vec<&'a str>>>>,
         create_table: String,
     }
 
-    impl<'a> CreateTableResult<'a> {
+    impl<'a> CrateTableResult <'a> {
         pub fn new (table: String, create_table: String) -> Self {
             return Self {
                 table,
@@ -32,15 +34,15 @@ pub mod database_module {
             let ddl_sliced: Vec<Option<Vec<&'a str>>> = self.create_table
                 .split_inclusive('\n')
                 .rev()
-                .filter(|dd_element| {
+                .filter(|ddl_element| {
                     let trimmed_element = ddl_element.trim();
-                    trimmed_element.start_with("Key")
+                    trimmed_element.starts_with("Key")
                 })
             .map(|ddl_element| {
                 let trimmed_element = ddl_element.trim();
                 if let (Some(start), Some(end)) = (trimmed_element.find('('), trimmed_element.rfind(')')) {
                     let inside_parentheses: &str = &trimmed_element[start+1..end];
-                    let items: Vec<&'a str> = inside_parentheses.spit(',')
+                    let items: Vec<&'a str> = inside_parentheses.split(',')
                         .map(|s| s.trim_matches(|c| c == ' ' || c == '`'))
                         .collect();
                     Some(items)
@@ -54,6 +56,17 @@ pub mod database_module {
 
         pub fn get_ddl () -> result::Result<(), Box<dyn error::Error>> {
             let new_conn = DbConnection::new();
+            let mut connection = new_conn.new_connection()?;
+                let val: Option<(String, String)> = connection.query_first("SHOW CREATE TABLE test.rules")?;
+
+            match val {
+                Some((table, create_table)) => Self::new(table, create_table),
+                None => {
+                    println!("Wasn't able to get DDL");
+                    process::exit(1);
+                },
+            };
+            Ok(())
         }
 
     }
@@ -70,7 +83,7 @@ pub mod database_module {
             return connection_object;
         }
 
-       fn get_connection_options(self) -> OptsBuilder {
+        fn get_connection_options(self) -> OptsBuilder {
             let connection_config = OptsBuilder::new()
                 .user(Some(self.user))
                 .db_name(Some(self.database))
@@ -80,9 +93,10 @@ pub mod database_module {
             return connection_config;
         }
 
-       fn new_connection(self) -> result::Result<Conn, mysql::Error> {
-           let connection_options = Self::get_connection_options(self);
+        fn new_connection(self) -> result::Result<Conn, mysql::Error> {
+            let connection_options = Self::get_connection_options(self);
 
-           return Conn::new(connection_options);
-       }
+            return Conn::new(connection_options);
+        }
+    }
 }
