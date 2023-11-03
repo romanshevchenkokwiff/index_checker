@@ -6,8 +6,10 @@ pub mod database_module {
     use serde_json::*;
     use serde::{Serialize, Deserialize};
     use mysql::prelude::*;
+    extern crate dotenv;
+    use dotenv::dotenv;
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct DbConnection {
         user: String,
         host: String,
@@ -55,27 +57,34 @@ pub mod database_module {
             & self.index_keys
         }
 
-        pub fn get_ddl () -> result::Result<(), Box<dyn error::Error>> {
+        pub fn get_ddl (table_name: String) -> result::Result<Self, Box<dyn error::Error>> {
             let new_conn = DbConnection::new();
             let mut connection = new_conn.new_connection()?;
-            let val: Option<(String, String)> = connection.query_first("SHOW CREATE TABLE test.rules")?;
+            let query: String = String::from("SHOW CREATE TABLE ") + &table_name[..];
+            let val: Option<(String, String)> = connection.query_first(query)?;
 
             match val {
-                Some((table, create_table)) => Self::new(table, create_table),
+                Some((table, create_table)) => { 
+                    println!("Table DDL: \n{}", create_table);
+                    return Ok(Self::new(table, create_table));
+                },
                 None => {
                     println!("Wasn't able to get DDL");
                     process::exit(1);
                 },
             };
-            Ok(())
         }
-
     }
 
     impl DbConnection {
         pub fn new () -> Self {
+            dotenv().ok();
             let connection_object: DbConnection = match env::var("DB_CONFIG") {
-                Ok(obj) => from_str(&obj[..]).unwrap(),
+                Ok(obj) => {
+                    let test = from_str(&obj[..]).unwrap();
+                    println!("\nOBJ{:#?}", test);
+                    test
+                },
                 Err(e) => {
                     println!("DB_CONFIG was not found");
                     process::exit(1);
@@ -83,7 +92,6 @@ pub mod database_module {
             };
             return connection_object;
         }
-
         fn get_connection_options(self) -> OptsBuilder {
             let connection_config = OptsBuilder::new()
                 .user(Some(self.user))
