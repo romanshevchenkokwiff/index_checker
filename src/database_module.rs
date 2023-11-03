@@ -57,7 +57,7 @@ pub mod database_module {
         pub fn get_ddl (table_name: String) -> result::Result<Self, Box<dyn error::Error>> {
             let new_conn = DbConnection::new();
             let mut connection = new_conn.new_connection()?;
-            let query: String = String::from("SHOW CREATE TABLE") + &table_name[..];
+            let query: String = String::from("SHOW CREATE TABLE ") + &table_name[..];
             let val: Option<(String, String)> = connection.query_first(query)?;
 
             match val {
