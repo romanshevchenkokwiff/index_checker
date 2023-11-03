@@ -1,11 +1,10 @@
-<<<<<<< HEAD
 target
 index.node
 **/node_modules
 **/.DS_Store
 npm-debug.log*
-=======
 /target
 .idea
 .DS_Store
->>>>>>> e6bca544c12f14587b57ccee51b6a6c494a78242
+.env
+package-lock.json
