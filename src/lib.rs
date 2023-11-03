@@ -18,7 +18,9 @@ fn get_initial_params(mut cx: FunctionContext) -> JsResult<JsNull> {
 
     let mut table_result: CreateTableResult<'_> = CreateTableResult::get_ddl(table_name).unwrap();
 
-    table_result.get_ddl_keys();
+    let index_keys = table_result.get_ddl_keys();
+
+    println!("index keys:\n {:#?}", index_keys);
 
 
     Ok(cx.null())

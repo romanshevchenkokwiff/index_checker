@@ -32,6 +32,7 @@ pub mod database_module {
                 index_keys: collections::HashMap::new(),
             }
         }
+
         pub fn get_ddl_keys (&'a mut self) -> &collections::HashMap<&'a str, Vec<Option<Vec<&'a str>>>> {
             let ddl_sliced: Vec<Option<Vec<&'a str>>> = self.create_table
                 .split_inclusive('\n')
