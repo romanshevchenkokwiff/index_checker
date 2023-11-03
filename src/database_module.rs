@@ -1,3 +1,5 @@
+const KEY_MATCH_START: [&str; 2] = ["UNIQUE KEY", "KEY"];
+
 pub mod database_module {
     use std::{env, process, result, error, collections};
     use mysql::*;
@@ -28,13 +30,13 @@ pub mod database_module {
                 index_keys: collections::HashMap::new(),
             }
         }
-        pub fn get_ddl_keys (&'a mut self) -> () {
+        pub fn get_ddl_keys (&'a mut self) -> &collections::HashMap<&'a str, Vec<Option<Vec<&'a str>>>> {
             let ddl_sliced: Vec<Option<Vec<&'a str>>> = self.create_table
                 .split_inclusive('\n')
                 .rev()
                 .filter(|ddl_element| {
                     let trimmed_element = ddl_element.trim();
-                    trimmed_element.starts_with("Key")
+                    super::KEY_MATCH_START.iter().any(|start_point| trimmed_element.starts_with(start_point))
                 })
             .map(|ddl_element| {
                 let trimmed_element = ddl_element.trim();
@@ -50,6 +52,7 @@ pub mod database_module {
             })
             .collect();
             self.index_keys.insert(&self.table, ddl_sliced);
+            & self.index_keys
         }
 
         pub fn get_ddl () -> result::Result<(), Box<dyn error::Error>> {
