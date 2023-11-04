@@ -1,4 +1,6 @@
 const KEY_MATCH_START: [&str; 2] = ["UNIQUE KEY", "KEY"];
+const CLOUSURES: [&str; 2] = ["where", "and"];
+const CLOUSURES_OPPERATORS: [&str; 7] = ["=", "in", "<", ">", "=<", "=>", "!="];
 
 pub mod database_module {
     use std::{env, process, result, error, collections};
@@ -8,6 +10,8 @@ pub mod database_module {
     use mysql::prelude::*;
     extern crate dotenv;
     use dotenv::dotenv;
+
+    use crate::database_module::CLOUSURES;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct DbConnection {
@@ -22,6 +26,11 @@ pub mod database_module {
         pub table: String,
         pub index_keys: collections::HashMap<&'a str, Vec<Option<Vec<&'a str>>>>,
         create_table: String,
+    }
+
+    pub struct QueryParse <'q>{
+        pub table_metas: CreateTableResult<'q>,
+        pub keys: Vec<&'q str>,
     }
 
     impl<'a> CreateTableResult <'a> {
@@ -86,13 +95,14 @@ pub mod database_module {
                     println!("\nOBJ{:#?}", test);
                     test
                 },
-                Err(e) => {
+                Err(_) => {
                     println!("DB_CONFIG was not found");
                     process::exit(1);
                 }
             };
             return connection_object;
         }
+
         fn get_connection_options(self) -> OptsBuilder {
             let connection_config = OptsBuilder::new()
                 .user(Some(self.user))
@@ -107,6 +117,30 @@ pub mod database_module {
             let connection_options = Self::get_connection_options(self);
 
             return Conn::new(connection_options);
+        }
+    }
+
+    // it's so ugly...
+    impl <'q>QueryParse<'q> {
+        pub fn get_keys(raw_sql: String, table_metas: CreateTableResult) -> Self {
+            let mut raw_split: Vec<&str> = raw_sql.split(' ').collect();
+            let position_of_where_key: usize = raw_split.clone().into_iter().position(|key| key == "where").unwrap();
+            let logic_slice: Vec<&str> = raw_split.split_off(position_of_where_key);
+
+            println!("\nWHERE KEYS: \n{:#?}\n", logic_slice);
+
+            let mut search_keys: Vec<&str> = vec![];
+
+            for (index, sql_clousure) in logic_slice.iter().enumerate() {
+                if CLOUSURES.iter().find(|&closure| closure == sql_clousure) != None  {
+                    search_keys.push(&logic_slice[index + 1]);
+                }; 
+            }
+
+            return QueryParse {
+                table_metas: table_metas,
+                keys: search_keys,
+            }
         }
     }
 }
