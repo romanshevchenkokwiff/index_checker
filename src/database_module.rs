@@ -29,8 +29,7 @@ pub mod database_module {
         create_table: String,
     }
 
-    pub struct QueryParse <'q>{
-        pub table_metas: CreateTableResult<'q>,
+    pub struct QueryParse {
         pub keys: Vec<String>,
     }
 
@@ -123,8 +122,8 @@ pub mod database_module {
         }
     }
 
-    impl <'q>QueryParse<'q> {
-        pub fn get_keys(raw_sql: String, table_metas: CreateTableResult<'q>) -> Self {
+    impl QueryParse {
+        pub fn get_keys(raw_sql: String) -> Self {
             let mut raw_split: Vec<&str> = raw_sql.split(' ').collect();
             let position_of_where_key: usize = raw_split.clone().into_iter().position(|key| key == "where").unwrap();
             let logic_slice: Vec<&str> = raw_split.split_off(position_of_where_key);
@@ -140,7 +139,6 @@ pub mod database_module {
             }
 
             return QueryParse {
-                table_metas: table_metas,
                 keys: search_keys,
             }
         }

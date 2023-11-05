@@ -14,11 +14,11 @@ fn get_initial_params(mut cx: FunctionContext) -> JsResult<JsNull> {
 
     println!("table name: {}\ntable sql: {}\n", table_name, table_sql);
 
-    let mut table_result: CreateTableResult<'static> = CreateTableResult::get_ddl(table_name).unwrap();
+    let mut table_result: CreateTableResult<'_> = CreateTableResult::get_ddl(table_name).unwrap();
 
     table_result.get_ddl_keys();
 
-    let query_keys: QueryParse<'_> = QueryParse::grt_keys(table_sql, &*table_result);
+    let query_keys: QueryParse = QueryParse::get_keys(table_sql);
 
     Ok(cx.null())
 }
