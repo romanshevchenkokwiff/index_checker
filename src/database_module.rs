@@ -29,6 +29,7 @@ pub mod database_module {
         create_table: String,
     }
 
+    #[derive(Debug)]
     pub struct QueryParse {
         pub keys: Vec<String>,
     }
@@ -128,13 +129,13 @@ pub mod database_module {
             let position_of_where_key: usize = raw_split.clone().into_iter().position(|key| key == "where").unwrap();
             let logic_slice: Vec<&str> = raw_split.split_off(position_of_where_key);
 
-            println!("\nWHERE KEYS: \n{:#?}\n", logic_slice);
-
             let mut search_keys: Vec<String> = vec![];
 
             for (index, sql_clousure) in logic_slice.iter().enumerate() {
                 if CLOUSURES.iter().find(|&closure| closure == sql_clousure) != None  {
-                    search_keys.push(String::from(logic_slice[index + 1]));
+                    let key_with_quotes = logic_slice[index+1];
+                    let key = key_with_quotes.trim_matches('\"');
+                    search_keys.push(String::from(key));
                 }; 
             }
 

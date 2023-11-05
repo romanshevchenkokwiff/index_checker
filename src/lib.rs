@@ -20,6 +20,8 @@ fn get_initial_params(mut cx: FunctionContext) -> JsResult<JsNull> {
 
     let query_keys: QueryParse = QueryParse::get_keys(table_sql);
 
+    println!("Stored query keys {:#?}", query_keys);
+
     Ok(cx.null())
 }
 
