@@ -30,7 +30,7 @@ pub mod database_module {
     }
 
     pub struct QueryParse <'q>{
-        pub table_metas: &'q CreateTableResult<'q>,
+        pub table_metas: CreateTableResult<'q>,
         pub keys: Vec<String>,
     }
 
@@ -42,9 +42,9 @@ pub mod database_module {
                 index_keys: collections::HashMap::new(),
             }
         }
-
-        pub fn get_ddl_keys (mut self) -> Self {
-            let ddl_sliced: Vec<Option<Vec<&'a str>>> = self.create_table
+        pub fn get_ddl_keys(&'a mut self) {
+            let ddl_sliced: Vec<Option<Vec<&str>>> = self
+                .create_table
                 .split_inclusive('\n')
                 .rev()
                 .filter(|ddl_element| {
@@ -53,19 +53,21 @@ pub mod database_module {
                 })
             .map(|ddl_element| {
                 let trimmed_element = ddl_element.trim();
-                if let (Some(start), Some(end)) = (trimmed_element.find('('), trimmed_element.rfind(')')) {
-                    let inside_parentheses: &str = &trimmed_element[start+1..end];
-                    let items: Vec<& str> = inside_parentheses.split(',')
-                        .map(|s| s.trim_matches(|c| c == ' ' || c == '`'))
-                        .collect();
-                    Some(items)
-                } else {
-                    None 
-                }
+                if let (Some(start), Some(end)) =
+                    (trimmed_element.find('('), trimmed_element.rfind(')'))
+                    {
+                        let inside_parentheses: &str = &trimmed_element[start + 1..end];
+                        let items: Vec<&str> = inside_parentheses
+                            .split(',')
+                            .map(|s| s.trim_matches(|c| c == ' ' || c == '`'))
+                            .collect();
+                        Some(items)
+                    } else {
+                        None
+                    }
             })
             .collect();
             self.index_keys.insert(&self.table, ddl_sliced);
-            return self;
         }
 
         pub fn get_ddl (table_name: String) -> result::Result<Self, Box<dyn error::Error>> {
@@ -121,9 +123,8 @@ pub mod database_module {
         }
     }
 
-    // it's so ugly...
     impl <'q>QueryParse<'q> {
-        pub fn get_keys(raw_sql: String, table_metas: &'q CreateTableResult) -> Self {
+        pub fn get_keys(raw_sql: String, table_metas: CreateTableResult<'q>) -> Self {
             let mut raw_split: Vec<&str> = raw_sql.split(' ').collect();
             let position_of_where_key: usize = raw_split.clone().into_iter().position(|key| key == "where").unwrap();
             let logic_slice: Vec<&str> = raw_split.split_off(position_of_where_key);
@@ -139,7 +140,7 @@ pub mod database_module {
             }
 
             return QueryParse {
-                table_metas: &table_metas,
+                table_metas: table_metas,
                 keys: search_keys,
             }
         }
