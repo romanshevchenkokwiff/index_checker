@@ -11,8 +11,6 @@ pub mod database_module {
     extern crate dotenv;
     use dotenv::dotenv;
 
-    use crate::database_module::CLOUSURES;
-
     #[derive(Serialize, Deserialize, Debug)]
     pub struct DbConnection {
         user: String,
@@ -106,6 +104,12 @@ pub mod database_module {
             return connection_object;
         }
 
+        pub fn new_connection(self) -> result::Result<Conn, mysql::Error> {
+            let connection_options = Self::get_connection_options(self);
+
+            return Conn::new(connection_options);
+        }
+
         fn get_connection_options(self) -> OptsBuilder {
             let connection_config = OptsBuilder::new()
                 .user(Some(self.user))
@@ -116,11 +120,6 @@ pub mod database_module {
             return connection_config;
         }
 
-        fn new_connection(self) -> result::Result<Conn, mysql::Error> {
-            let connection_options = Self::get_connection_options(self);
-
-            return Conn::new(connection_options);
-        }
     }
 
     impl QueryParse {
@@ -145,3 +144,4 @@ pub mod database_module {
         }
     }
 }
+
