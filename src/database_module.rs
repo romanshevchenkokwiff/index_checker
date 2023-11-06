@@ -1,3 +1,7 @@
+const KEY_MATCH_START: [&str; 2] = ["UNIQUE KEY", "KEY"];
+const CLOUSURES: [&str; 2] = ["where", "and"];
+const CLOUSURES_OPPERATORS: [&str; 7] = ["=", "in", "<", ">", "=<", "=>", "!="];
+
 pub mod database_module {
     use std::{env, process, result, error, collections};
     use mysql::*;
@@ -6,7 +10,7 @@ pub mod database_module {
     use mysql::prelude::*;
     extern crate dotenv;
     use dotenv::dotenv;
-   
+
     #[derive(Serialize, Deserialize, Debug)]
     pub struct DbConnection {
         user: String,
@@ -16,10 +20,16 @@ pub mod database_module {
         password: String,
     }
 
+    #[derive(Clone)]
     pub struct CreateTableResult <'a>{
         pub table: String,
         pub index_keys: collections::HashMap<&'a str, Vec<Option<Vec<&'a str>>>>,
         create_table: String,
+    }
+
+    #[derive(Debug)]
+    pub struct QueryParse {
+        pub keys: Vec<String>,
     }
 
     impl<'a> CreateTableResult <'a> {
@@ -30,25 +40,29 @@ pub mod database_module {
                 index_keys: collections::HashMap::new(),
             }
         }
-        pub fn get_ddl_keys (&'a mut self) -> () {
-            let ddl_sliced: Vec<Option<Vec<&'a str>>> = self.create_table
+        pub fn get_ddl_keys(&'a mut self) {
+            let ddl_sliced: Vec<Option<Vec<&str>>> = self
+                .create_table
                 .split_inclusive('\n')
                 .rev()
                 .filter(|ddl_element| {
                     let trimmed_element = ddl_element.trim();
-                    trimmed_element.starts_with("Key")
+                    super::KEY_MATCH_START.iter().any(|start_point| trimmed_element.starts_with(start_point))
                 })
             .map(|ddl_element| {
                 let trimmed_element = ddl_element.trim();
-                if let (Some(start), Some(end)) = (trimmed_element.find('('), trimmed_element.rfind(')')) {
-                    let inside_parentheses: &str = &trimmed_element[start+1..end];
-                    let items: Vec<&'a str> = inside_parentheses.split(',')
-                        .map(|s| s.trim_matches(|c| c == ' ' || c == '`'))
-                        .collect();
-                    Some(items)
-                } else {
-                    None 
-                }
+                if let (Some(start), Some(end)) =
+                    (trimmed_element.find('('), trimmed_element.rfind(')'))
+                    {
+                        let inside_parentheses: &str = &trimmed_element[start + 1..end];
+                        let items: Vec<&str> = inside_parentheses
+                            .split(',')
+                            .map(|s| s.trim_matches(|c| c == ' ' || c == '`'))
+                            .collect();
+                        Some(items)
+                    } else {
+                        None
+                    }
             })
             .collect();
             self.index_keys.insert(&self.table, ddl_sliced);
@@ -71,7 +85,6 @@ pub mod database_module {
                 },
             };
         }
-
     }
 
     impl DbConnection {
@@ -83,7 +96,7 @@ pub mod database_module {
                     println!("\nOBJ{:#?}", test);
                     test
                 },
-                Err(e) => {
+                Err(_) => {
                     println!("DB_CONFIG was not found");
                     process::exit(1);
                 }
@@ -107,6 +120,28 @@ pub mod database_module {
             return connection_config;
         }
 
+    }
+
+    impl QueryParse {
+        pub fn get_keys(raw_sql: String) -> Self {
+            let mut raw_split: Vec<&str> = raw_sql.split(' ').collect();
+            let position_of_where_key: usize = raw_split.clone().into_iter().position(|key| key == "where").unwrap();
+            let logic_slice: Vec<&str> = raw_split.split_off(position_of_where_key);
+
+            let mut search_keys: Vec<String> = vec![];
+
+            for (index, sql_clousure) in logic_slice.iter().enumerate() {
+                if CLOUSURES.iter().find(|&closure| closure == sql_clousure) != None  {
+                    let key_with_quotes = logic_slice[index+1];
+                    let key = key_with_quotes.trim_matches('\"');
+                    search_keys.push(String::from(key));
+                }; 
+            }
+
+            return QueryParse {
+                keys: search_keys,
+            }
+        }
     }
 }
 
