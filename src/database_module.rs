@@ -22,7 +22,7 @@ pub mod database_module {
 
     #[derive(Clone, Debug)]
     pub struct CreateTableResult {
-         pub table: String,
+        pub table: String,
         pub index_keys: collections::HashMap<String, Vec<Option<Vec<String>>>>,
         create_table: String,
     }
