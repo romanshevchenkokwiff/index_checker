@@ -3,8 +3,6 @@ use neon::prelude::*;
 mod database_module;
 use database_module::database_module::*;
 
-fn hello(mut cx: FunctionContext) -> JsResult<JsString> { Ok(cx.string("hello node")) }
-
 fn get_initial_params(mut cx: FunctionContext) -> JsResult<JsNull> {
 
     let raw_table_name = cx.argument::<JsString>(0).unwrap();
@@ -15,11 +13,8 @@ fn get_initial_params(mut cx: FunctionContext) -> JsResult<JsNull> {
 
     println!("table name: {}\ntable sql: {}\n", table_name, table_sql);
 
-    let mut table_result: CreateTableResult<'_> = CreateTableResult::get_ddl(table_name).unwrap();
-
-    table_result.get_ddl_keys();
-
-    let query_keys: QueryParse = QueryParse::get_keys(table_sql);
+    let table_result: CreateTableResult = CreateTableResult::get_ddl_keys(table_name);
+    let query_keys: QueryParse = QueryParse::get_keys(table_sql, table_result);
 
     println!("Stored query keys {:#?}", query_keys);
 
@@ -28,7 +23,6 @@ fn get_initial_params(mut cx: FunctionContext) -> JsResult<JsNull> {
 
 #[neon::main]
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
-    cx.export_function("hello", hello)?;
     cx.export_function("get_initial_params", get_initial_params)?;
     Ok(())
 }
