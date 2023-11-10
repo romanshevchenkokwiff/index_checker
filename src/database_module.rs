@@ -34,6 +34,14 @@ pub mod database_module {
     }
 
     impl CreateTableResult {
+        fn new (table: String, create_table: String) -> Self {
+            return Self {
+                table,
+                create_table,
+                index_keys: collections::HashMap::new(),
+            }
+        }
+
         fn get_ddl (table_name: String) -> result::Result<Self, Box<dyn error::Error>> {
             let new_conn = DbConnection::new();
             let mut connection = new_conn.new_connection()?;
