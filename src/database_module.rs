@@ -150,6 +150,20 @@ pub mod database_module {
                 create_table_result,
             }
         }
+
+        pub fn get_table_name (raw_sql: String) -> String {
+            let tokens: Vec<&str> = raw_sql.split_whitespace().collect();
+            let mut table_name = String::new();
+
+            for (i, token) in tokens.iter().enumerate() {
+                if token.to_lowercase() == "from" && i + 1 < tokens.len() {
+                    table_name = tokens[i + 1].trim_matches('"').to_string();
+                    break;
+                }
+            }
+
+            table_name
+        }
     }
 }
 
