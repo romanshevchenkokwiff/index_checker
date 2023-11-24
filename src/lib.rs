@@ -1,6 +1,7 @@
 use neon::prelude::*;
 
 mod database_module;
+mod index_validation;
 use database_module::database_module::*;
 
 fn get_initial_params(mut cx: FunctionContext) -> JsResult<JsNull> {
