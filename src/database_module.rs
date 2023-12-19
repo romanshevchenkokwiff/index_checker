@@ -1,5 +1,4 @@
 const KEY_MATCH_START: [&str; 2] = ["UNIQUE KEY", "KEY"];
-const CLOUSURES: [&str; 2] = ["where", "and"];
 const CLOUSURES_OPPERATORS: [&str; 7] = ["=", "in", "<", ">", "=<", "=>", "!="];
 
 pub mod database_module {
@@ -20,29 +19,44 @@ pub mod database_module {
         password: String,
     }
 
-    #[derive(Clone)]
-    pub struct CreateTableResult <'a>{
+    #[derive(Clone, Debug)]
+    pub struct CreateTableResult {
         pub table: String,
-        pub index_keys: collections::HashMap<&'a str, Vec<Option<Vec<&'a str>>>>,
+        pub index_keys: collections::HashMap<String, Vec<Option<Vec<String>>>>,
         create_table: String,
     }
-
-    #[derive(Debug)]
-    pub struct QueryParse {
-        pub keys: Vec<String>,
-    }
-
-    impl<'a> CreateTableResult <'a> {
-        pub fn new (table: String, create_table: String) -> Self {
+    impl CreateTableResult {
+        fn new (table: String, create_table: String) -> Self {
             return Self {
                 table,
                 create_table,
                 index_keys: collections::HashMap::new(),
             }
         }
-        pub fn get_ddl_keys(&'a mut self) {
-            let ddl_sliced: Vec<Option<Vec<&str>>> = self
-                .create_table
+
+        fn get_ddl (table_name: String) -> result::Result<Self, Box<dyn error::Error>> {
+            let new_conn = DbConnection::new();
+            let mut connection = new_conn.new_connection()?;
+            let query: String = String::from("SHOW CREATE TABLE ") + &table_name[..];
+            let val: Option<(String, String)> = connection.query_first(query)?;
+
+            match val {
+                Some((table, create_table)) => {
+                    println!("Table DDL: \n{}", create_table);
+                    return Ok(Self::new(table, create_table));
+                },
+                None => {
+                    println!("Wasn't able to get DDL");
+                    process::exit(1);
+                },
+            };
+        }
+
+        pub fn get_ddl_keys(table_name: String) -> Self {
+            let mut ddl = Self::get_ddl(table_name).unwrap();
+
+            let ddl_sliced: Vec<Option<Vec<String>>> = ddl
+                .create_table.clone()
                 .split_inclusive('\n')
                 .rev()
                 .filter(|ddl_element| {
@@ -55,9 +69,9 @@ pub mod database_module {
                     (trimmed_element.find('('), trimmed_element.rfind(')'))
                     {
                         let inside_parentheses: &str = &trimmed_element[start + 1..end];
-                        let items: Vec<&str> = inside_parentheses
+                        let items: Vec<String> = inside_parentheses
                             .split(',')
-                            .map(|s| s.trim_matches(|c| c == ' ' || c == '`'))
+                            .map(|s| String::from(s.trim_matches(|c| c == ' ' || c == '`')))
                             .collect();
                         Some(items)
                     } else {
@@ -65,26 +79,11 @@ pub mod database_module {
                     }
             })
             .collect();
-            self.index_keys.insert(&self.table, ddl_sliced);
+
+            ddl.index_keys.insert(ddl.table.clone(), ddl_sliced);
+            return ddl;
         }
 
-        pub fn get_ddl (table_name: String) -> result::Result<Self, Box<dyn error::Error>> {
-            let new_conn = DbConnection::new();
-            let mut connection = new_conn.new_connection()?;
-            let query: String = String::from("SHOW CREATE TABLE ") + &table_name[..];
-            let val: Option<(String, String)> = connection.query_first(query)?;
-
-            match val {
-                Some((table, create_table)) => { 
-                    println!("Table DDL: \n{}", create_table);
-                    return Ok(Self::new(table, create_table));
-                },
-                None => {
-                    println!("Wasn't able to get DDL");
-                    process::exit(1);
-                },
-            };
-        }
     }
 
     impl DbConnection {
@@ -122,26 +121,5 @@ pub mod database_module {
 
     }
 
-    impl QueryParse {
-        pub fn get_keys(raw_sql: String) -> Self {
-            let mut raw_split: Vec<&str> = raw_sql.split(' ').collect();
-            let position_of_where_key: usize = raw_split.clone().into_iter().position(|key| key == "where").unwrap();
-            let logic_slice: Vec<&str> = raw_split.split_off(position_of_where_key);
-
-            let mut search_keys: Vec<String> = vec![];
-
-            for (index, sql_clousure) in logic_slice.iter().enumerate() {
-                if CLOUSURES.iter().find(|&closure| closure == sql_clousure) != None  {
-                    let key_with_quotes = logic_slice[index+1];
-                    let key = key_with_quotes.trim_matches('\"');
-                    search_keys.push(String::from(key));
-                }; 
-            }
-
-            return QueryParse {
-                keys: search_keys,
-            }
-        }
-    }
 }
 
