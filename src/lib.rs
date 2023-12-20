@@ -3,6 +3,7 @@ use neon::prelude::*;
 mod database_module;
 mod index_validation;
 use database_module::database_module::*;
+use crate::index_validation::index_validation::QueryParse;
 
 fn get_initial_params(mut cx: FunctionContext) -> JsResult<JsNull> {
     let raw_table_sql = cx.argument::<JsString>(0).unwrap();

@@ -53,6 +53,7 @@ pub mod database_module {
         }
 
         pub fn get_ddl_keys(table_name: String) -> Self {
+            println!("table_name {table_name}");
             let mut ddl = Self::get_ddl(table_name).unwrap();
 
             let ddl_sliced: Vec<Option<Vec<String>>> = ddl
