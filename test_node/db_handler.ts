@@ -1,4 +1,4 @@
-const test = require('.');
+const test = require('../.');
 
 declare var self: Worker;
 

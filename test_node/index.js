@@ -1,6 +1,7 @@
 const knex = require('knex');
 const workerUrl = new URL('./db_handler.js', import.meta.url).href;
 const worker = new Worker(workerUrl);
+//import of little dohiky
 const test = require('../.');
 
 const config = {
@@ -19,7 +20,7 @@ const connection = knex(config);
 connection.on('query', (data) => {
   console.log('on query event test');
   console.log(data);
-  test.get_initial_params(data.sql);
+  //test.get_initial_params(data.sql);
   worker.postMessage(data.sql);
   worker.onmessage = event => console.log(event)
 });
@@ -41,6 +42,6 @@ connection.on('query-error', (data) => {
 //  table.index(['id', 'name']);
 //})
 
-await connection('newTest').select('*');
+await connection('newTest').select('*').where('id', 1).where('name', 'test');
 
 process.exit(0);
